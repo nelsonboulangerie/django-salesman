@@ -185,7 +185,15 @@ class BasketSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Basket
-        fields = ["id", "items", "subtotal", "extra_rows", "total", "extra"]
+        fields = [
+            "id",
+            "ref",
+            "items",
+            "subtotal",
+            "extra_rows",
+            "total",
+            "extra",
+        ]
 
     def to_representation(self, basket: BaseBasket) -> Any:
         basket.update(self.context["request"])

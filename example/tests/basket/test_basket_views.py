@@ -11,7 +11,7 @@ BasketItem = get_salesman_model("BasketItem")
 
 
 @pytest.mark.django_db
-def test_basket_views():
+def test_basket_views(django_user_model):
     url = reverse("salesman-basket-list")
     client = APIClient()
 
@@ -109,3 +109,17 @@ def test_basket_views():
     assert response.status_code == 204
     response = client.get(url)
     assert response.json()["id"] == basket_id + 1
+
+    # staff multi-basket via ref
+    staff = django_user_model.objects.create_user(
+        username="staff", password="pw", is_staff=True
+    )
+    client.force_authenticate(staff)
+    response = client.get(url + "?ref=pos-1")
+    assert response.status_code == 200
+    assert response.json()["ref"] == "pos-1"
+    response = client.get(url + "?ref=pos-2")
+    assert response.status_code == 200
+    assert response.json()["ref"] == "pos-2"
+    Basket = get_salesman_model("Basket")
+    assert Basket.objects.filter(user=staff).count() == 2

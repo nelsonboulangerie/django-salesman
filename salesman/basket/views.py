@@ -47,8 +47,13 @@ class BasketViewSet(viewsets.ModelViewSet):
     def get_basket(self) -> BaseBasket:
         if self._basket:
             return self._basket
+        ref = (
+            self.request.query_params.get("ref")
+            or self.request.headers.get("X-Basket-Ref")
+            or getattr(self.request.data, "get", lambda x: None)("ref")
+        )
         basket: BaseBasket
-        basket, _ = Basket.objects.get_or_create_from_request(self.request)
+        basket, _ = Basket.objects.get_or_create_from_request(self.request, ref=ref)
         self._basket = basket
         return basket
 

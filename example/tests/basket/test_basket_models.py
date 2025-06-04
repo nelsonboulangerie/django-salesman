@@ -40,6 +40,15 @@ def test_get_or_create_basket_from_request(rf, django_user_model):
     basket, _ = Basket.objects.get_or_create_from_request(request)
     assert request.user.basket_set.count() == 1
 
+    # staff user with ref should bypass merge and create new basket
+    request.GET = request.GET.copy()
+    request.GET["ref"] = "pos1"
+    request.user.is_staff = True
+    basket_pos, created = Basket.objects.get_or_create_from_request(request)
+    assert created
+    assert basket_pos.ref == "pos1"
+    assert Basket.objects.count() == 2
+
 
 @pytest.mark.django_db
 def test_basket_str():

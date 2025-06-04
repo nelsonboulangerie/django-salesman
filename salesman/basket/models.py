@@ -26,16 +26,36 @@ class BasketManager(models.Manager["BaseBasket"]):
     def get_or_create_from_request(
         self,
         request: HttpRequest,
+        ref: str | None = None,
     ) -> tuple[BaseBasket, bool]:
         """
         Get basket from request or create a new one.
-        If user is logged in session basket gets merged into a user basket.
+        If ``ref`` is supplied or detected on the request the merging logic is
+        skipped and basket with given reference (and optionally user) is fetched
+        or created. Otherwise if user is logged in session basket gets merged
+        into a user basket.
 
         Returns:
             tuple: (basket, created)
         """
         if not hasattr(request, "session"):
             request.session = {}
+
+        if ref is None:
+            ref = (
+                getattr(getattr(request, "GET", {}), "get", lambda x: None)("ref")
+                or getattr(request, "headers", {}).get("X-Basket-Ref")
+                or getattr(getattr(request, "data", {}), "get", lambda x: None)("ref")
+                or getattr(getattr(request, "POST", {}), "get", lambda x: None)("ref")
+            )
+
+        if ref:
+            kwargs = {"ref": ref}
+            if getattr(request, "user", None) and request.user.is_authenticated:
+                kwargs["user_id"] = request.user.id
+            basket, created = self.get_or_create(**kwargs)
+            return basket, created
+
         try:
             session_basket_id = request.session[BASKET_ID_SESSION_KEY]
             session_basket = self.get(id=session_basket_id, user=None)
